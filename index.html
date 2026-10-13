@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="업무일지">
+<meta name="theme-color" content="#1f2a37">
+<title>업무일지</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@9.10.0/dist/index.iife.js"></script>
+<style>
+:root{
+  color-scheme:light dark;
+  --bg:#f4f5f7; --card:#ffffff; --text:#1f2a37; --sub:#6b7280; --line:#e5e7eb;
+  --primary:#2f5d50; --primary-weak:#e3efe9; --danger:#c0392b; --danger-weak:#fbe9e7;
+  --good:#2e7d4f; --bad:#c0392b; --sorry:#b7791f; --idea:#2b6cb0; --gen:#6b7280;
+  --shadow:0 1px 3px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111418; --card:#1b2026; --text:#e6e8eb; --sub:#9aa3ad; --line:#2c333b;
+    --primary:#6fbf9f; --primary-weak:#1f3a31; --danger:#ef7a6c; --danger-weak:#3a2220;
+    --good:#6fcf97; --bad:#ef7a6c; --sorry:#e0b252; --idea:#7fb2ec; --gen:#9aa3ad;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111418; --card:#1b2026; --text:#e6e8eb; --sub:#9aa3ad; --line:#2c333b;
+  --primary:#6fbf9f; --primary-weak:#1f3a31; --danger:#ef7a6c; --danger-weak:#3a2220;
+  --good:#6fcf97; --bad:#ef7a6c; --sorry:#e0b252; --idea:#7fb2ec; --gen:#9aa3ad;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+.hidden{display:none!important}
+.wrap{max-width:980px;margin:0 auto;padding:16px 16px 96px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+h1{font-size:20px;margin:0}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 8px}
+.sub{color:var(--sub);font-size:13px}
+label.lb{display:block;font-size:13px;color:var(--sub);margin:12px 0 6px;font-weight:600}
+input[type=text],input[type=email],input[type=password],input[type=date],input[type=number],select,textarea{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--primary)}
+textarea{min-height:140px;resize:vertical}
+.btn{border:1px solid var(--line);background:var(--card);padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn:hover{filter:brightness(.97)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+:root[data-theme="dark"] .btn.primary{color:#0e1512}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.primary{color:#0e1512}}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--card);padding:7px 12px;border-radius:999px;cursor:pointer;font-size:14px;user-select:none}
+.chip.on{background:var(--primary-weak);border-color:var(--primary);color:var(--primary);font-weight:700}
+.stars span{font-size:24px;cursor:pointer;color:var(--line);padding:0 2px}
+.stars span.on{color:#f2b01e}
+/* header & tabs */
+header.top{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+header.top .in{max-width:980px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.tabs{display:flex;gap:4px}
+.tab{border:none;background:none;padding:8px 12px;border-radius:8px;cursor:pointer;color:var(--sub);font-weight:600}
+.tab.on{background:var(--primary-weak);color:var(--primary)}
+@media(max-width:700px){
+  header.top .tabs{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:30}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;font-size:12px;padding:6px 2px}
+  .tab .ic{font-size:20px}
+}
+@media(min-width:701px){.tab .ic{margin-right:4px}}
+/* entries */
+.entry{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--card)}
+.entry .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--sub);margin-bottom:6px}
+.entry .title{font-weight:700;margin-bottom:4px}
+.entry .body{white-space:pre-wrap;word-break:break-word}
+.entry .act{white-space:pre-wrap;margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--primary-weak);font-size:14px}
+.entry .ops{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid currentColor}
+.t-good{color:var(--good)}.t-bad{color:var(--bad)}.t-sorry{color:var(--sorry)}.t-idea{color:var(--idea)}.t-gen{color:var(--gen)}
+.area{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;background:var(--bg);border:1px solid var(--line);color:var(--sub)}
+.dategroup{font-weight:700;margin:16px 0 8px;font-size:14px;color:var(--sub)}
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .h{text-align:center;font-size:12px;color:var(--sub);padding:4px 0}
+.cal .d{aspect-ratio:1/1;border:1px solid var(--line);border-radius:8px;padding:4px;font-size:13px;cursor:pointer;position:relative;background:var(--card);display:flex;flex-direction:column}
+.cal .d.out{opacity:.35}
+.cal .d.today{border-color:var(--primary);border-width:2px}
+.cal .d.sel{background:var(--primary-weak)}
+.cal .d .cnt{margin-top:auto;align-self:flex-end;font-size:11px;font-weight:700;background:var(--primary);color:#fff;border-radius:999px;min-width:18px;text-align:center;padding:0 5px}
+.cal .d .sun{color:var(--bad)}
+/* stats */
+.stat-boxes{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.sbox{border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.sbox .n{font-size:24px;font-weight:800}
+.sbox .l{font-size:12px;color:var(--sub)}
+.bar{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+.bar .nm{width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .tr{flex:1;height:14px;background:var(--bg);border-radius:7px;overflow:hidden}
+.bar .fl{height:100%;border-radius:7px;background:var(--primary)}
+.bar .v{width:34px;text-align:right;font-weight:700}
+.kw{display:flex;flex-wrap:wrap;gap:6px}
+.kw span{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px}
+/* auth screens */
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.authbox{width:100%;max-width:380px}
+.logo{font-size:36px;text-align:center}
+.warn{background:var(--danger-weak);color:var(--danger);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+.info{background:var(--primary-weak);color:var(--primary);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+.err{color:var(--danger);font-size:13px;margin-top:8px;min-height:18px}
+/* PIN */
+.pin-dots{display:flex;justify-content:center;gap:16px;margin:18px 0 6px}
+.pin-dots span{width:16px;height:16px;border-radius:50%;border:2px solid var(--primary)}
+.pin-dots span.on{background:var(--primary)}
+.pin-dots.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+.pinpad button{height:60px;border-radius:14px;border:1px solid var(--line);background:var(--bg);font-size:24px;font-weight:700;cursor:pointer}
+.pinpad button.fn{font-size:15px;color:var(--sub)}
+.pinpad button:active{background:var(--primary-weak)}
+.pinpad.busy{opacity:.5;pointer-events:none}
+/* 읽기 (슬라이드) */
+.read-nav{display:flex;align-items:center;gap:8px}
+.read-nav .mid{flex:1;text-align:center;min-width:0}
+.read-nav .mid .d{font-size:18px;font-weight:800}
+.read-nav .mid .c{font-size:12px;color:var(--sub)}
+.read-nav .arrow{width:44px;height:44px;border-radius:50%;font-size:18px;padding:0;display:flex;align-items:center;justify-content:center}
+.read-stage{overflow:hidden;touch-action:pan-y}
+.read-page{transition:transform .25s ease, opacity .25s ease;will-change:transform}
+.read-page.dragging{transition:none}
+.read-page.out-left{transform:translateX(-40%);opacity:0}
+.read-page.out-right{transform:translateX(40%);opacity:0}
+.read-entry{padding:14px 0;border-bottom:1px solid var(--line)}
+.read-entry:last-child{border-bottom:none}
+.read-entry .rt{font-size:17px;font-weight:700;margin-bottom:6px}
+.read-entry .rb{white-space:pre-wrap;word-break:break-word;line-height:1.75;font-size:15.5px}
+.read-entry .rm{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--sub)}
+.read-dots{display:flex;justify-content:center;gap:5px;margin-top:10px;flex-wrap:wrap}
+.read-dots span{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.read-dots span.on{background:var(--primary);width:16px;border-radius:3px}
+.read-hint{text-align:center;font-size:12px;color:var(--sub);margin-top:8px}
+/* 날짜 입력: 달력 아이콘 크게·잘 보이게, 칸 어디를 눌러도 달력 열림 */
+:root[data-theme="light"]{color-scheme:light}
+input[type=date]{cursor:pointer;min-height:44px}
+input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;width:22px;height:22px;opacity:1;padding:4px;border-radius:6px}
+input[type=date]::-webkit-calendar-picker-indicator:hover{background:var(--primary-weak)}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.4)}
+}
+:root[data-theme="dark"] input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.4)}
+/* Word 미리보기 */
+.doc-preview{padding:28px 22px;line-height:1.75}
+.dp-title{font-size:24px;font-weight:800;text-align:center}
+.dp-sub{text-align:center;color:var(--sub);font-size:13px;margin:4px 0 26px}
+.dp-month{font-size:19px;font-weight:800;color:var(--primary);border-bottom:2px solid var(--primary);padding-bottom:4px;margin:28px 0 10px}
+.dp-month:first-of-type{margin-top:0}
+.dp-day{font-weight:700;color:var(--sub);margin:18px 0 6px}
+.dp-etitle{font-weight:700;font-size:16px;margin:10px 0 4px}
+.dp-body{white-space:pre-wrap;word-break:break-word}
+/* toast */
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1f2a37;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+#toast.show{opacity:1}
+#loading{position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:90}
+#loading .box{background:var(--card);padding:16px 22px;border-radius:12px;font-weight:600}
+table.log{width:100%;border-collapse:collapse;font-size:13px}
+table.log td,table.log th{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left}
+.empty{text-align:center;color:var(--sub);padding:24px 0}
+.report-sec{margin-top:14px}
+.report-item{padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.report-item:last-child{border-bottom:none}
+@media print{
+  header.top,.noprint{display:none!important}
+  body{background:#fff}
+  .card{box-shadow:none;border:none}
+}
+</style>
+</head>
+<body>
+
+<!-- 1. 비밀번호 6자리 (잠금 해제 / 최초 설정) -->
+<div id="scrUnlock" class="center hidden">
+  <div class="authbox card">
+    <div class="logo">🔐</div>
+    <h1 style="text-align:center" id="unlockTitle">업무일지</h1>
+    <p class="sub" style="text-align:center;margin:4px 0 8px" id="unlockDesc">비밀번호 6자리를 입력해주세요</p>
+    <div id="setupBox" class="hidden">
+      <div class="warn">⚠️ 비밀번호를 잊어버리면 누구도(관리자 포함) 일기를 복구할 수 없어요. 꼭 기억해두세요.</div>
+    </div>
+    <div class="pin-dots" id="pinDots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="err" id="unlockErr" style="text-align:center"></div>
+    <div class="pinpad" id="pinPad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-k="clear" class="fn">전체삭제</button><button data-k="0">0</button><button data-k="back" class="fn">⌫</button>
+    </div>
+    <p class="sub" style="text-align:center;margin:14px 0 0">5번 틀리면 30분 동안 잠겨요</p>
+  </div>
+</div>
+
+<!-- 3. 메인 -->
+<div id="scrMain" class="hidden">
+  <header class="top">
+    <div class="in">
+      <h1>📓 업무일지</h1>
+      <span class="sub">개인용</span>
+      <div class="grow"></div>
+      <nav class="tabs">
+        <button class="tab on" data-tab="write"><span class="ic">✍️</span>쓰기</button>
+        <button class="tab" data-tab="read"><span class="ic">📖</span>읽기</button>
+        <button class="tab" data-tab="list"><span class="ic">📚</span>기록</button>
+        <button class="tab" data-tab="report"><span class="ic">⬇️</span>다운로드</button>
+        <button class="tab" data-tab="settings"><span class="ic">⚙️</span>설정</button>
+      </nav>
+      <button class="btn sm" id="btnLock" title="지금 잠그기">🔒</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <!-- 쓰기 -->
+    <section id="tab-write">
+      <div class="card">
+        <div class="row">
+          <h2 class="grow" id="formTitle" style="margin:0">오늘의 기록</h2>
+          <button class="btn sm hidden" id="btnCancelEdit">수정 취소</button>
+        </div>
+        <label class="lb">날짜</label>
+        <input type="date" id="fDate">
+        <label class="lb">제목 (한 줄 요약)</label>
+        <input type="text" id="fTitle" maxlength="120" placeholder="한 줄로 요약">
+        <label class="lb">내용</label>
+        <textarea id="fContent" placeholder="오늘 느낀 점을 자유롭게 적어주세요"></textarea>
+        <div class="row" style="margin-top:14px">
+          <button class="btn primary grow" id="btnSave">저장</button>
+        </div>
+        <p class="sub" style="margin:8px 0 0">🔒 저장 전에 이 기기에서 암호화돼서 서버로 전송돼요.</p>
+      </div>
+      <div class="card">
+        <h2 id="sameDayTitle">이 날의 기록</h2>
+        <div id="sameDayList"></div>
+      </div>
+    </section>
+
+    <!-- 읽기 -->
+    <section id="tab-read" class="hidden">
+      <div class="card">
+        <div class="read-nav">
+          <button class="btn arrow" id="readPrev" title="이전 날">◀</button>
+          <div class="mid">
+            <div class="d" id="readDate"></div>
+            <div class="c" id="readCount"></div>
+          </div>
+          <button class="btn arrow" id="readNext" title="다음 날">▶</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <input type="date" id="readJump" class="grow" title="날짜로 이동">
+          <button class="btn sm" id="readLatest">최근</button>
+        </div>
+      </div>
+      <div class="card read-stage" id="readStage">
+        <div class="read-page" id="readPage"></div>
+      </div>
+      <div class="read-dots" id="readDots"></div>
+      <div class="read-hint">← 옆으로 밀어서 다른 날짜 보기 →</div>
+    </section>
+
+    <!-- 기록 -->
+    <section id="tab-list" class="hidden">
+      <div class="card">
+        <div class="row" style="margin-bottom:10px">
+          <button class="btn sm" id="calPrev">◀</button>
+          <h2 class="grow" id="calTitle" style="margin:0;text-align:center"></h2>
+          <button class="btn sm" id="calNext">▶</button>
+          <button class="btn sm" id="calToday">오늘</button>
+        </div>
+        <div class="cal" id="cal"></div>
+      </div>
+      <div class="card">
+        <div class="grid2">
+          <div><label class="lb">시작일</label><input type="date" id="lFrom"></div>
+          <div><label class="lb">종료일</label><input type="date" id="lTo"></div>
+        </div>
+        <label class="lb">검색어 (제목·내용)</label>
+        <input type="text" id="lKw" placeholder="키워드 입력">
+        <div class="row" style="margin-top:10px">
+          <span class="sub grow" id="lCount"></span>
+          <button class="btn sm" id="lReset">필터 초기화</button>
+          <button class="btn sm" id="lExcel">엑셀</button>
+        </div>
+      </div>
+      <div id="listBox"></div>
+    </section>
+
+    <!-- 다운로드 (Word 내려받기) -->
+    <section id="tab-report" class="hidden">
+      <div class="card">
+        <h2>📄 Word로 내려받기</h2>
+        <p class="sub" style="margin-top:-6px">기간을 고르면 그 기간 기록을 날짜순으로 이어 붙여 한 편의 글처럼 만들어줘요.</p>
+        <div class="chips" id="rQuick">
+          <span class="chip on" data-q="month">이번 달</span>
+          <span class="chip" data-q="lastmonth">지난 달</span>
+          <span class="chip" data-q="3m">최근 3개월</span>
+          <span class="chip" data-q="6m">최근 6개월</span>
+          <span class="chip" data-q="year">올해</span>
+          <span class="chip" data-q="all">전체</span>
+        </div>
+        <div class="grid2" style="margin-top:6px">
+          <div><label class="lb">시작일</label><input type="date" id="rFrom"></div>
+          <div><label class="lb">종료일</label><input type="date" id="rTo"></div>
+        </div>
+        <label class="lb">문서 제목</label>
+        <input type="text" id="rDocTitle" maxlength="60" value="업무일지">
+        <button class="btn primary block" id="rWord" style="margin-top:14px">⬇️ Word 다운로드</button>
+        <p class="sub" id="rInfo" style="text-align:center;margin:8px 0 0"></p>
+      </div>
+      <div id="reportBox"></div>
+    </section>
+
+    <!-- 설정 -->
+    <section id="tab-settings" class="hidden">
+      <div class="card">
+        <h2>보안</h2>
+        <label class="lb">자동 잠금 (미사용 시)</label>
+        <select id="sLock">
+          <option value="5">5분</option>
+          <option value="10">10분</option>
+          <option value="15">15분</option>
+          <option value="30">30분</option>
+          <option value="60">60분</option>
+        </select>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="btnLock2">🔒 지금 잠그기</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>비밀번호(6자리) 변경</h2>
+        <p class="sub" style="margin-top:0">모든 일기를 새 비밀번호로 다시 암호화해요. 중간에 실패하면 전부 원래대로 돌아가요.</p>
+        <label class="lb">현재 비밀번호</label><input type="password" id="cpOld" inputmode="numeric" maxlength="6" autocomplete="off">
+        <label class="lb">새 비밀번호 (숫자 6자리)</label><input type="password" id="cpNew1" inputmode="numeric" maxlength="6" autocomplete="off">
+        <label class="lb">새 비밀번호 확인</label><input type="password" id="cpNew2" inputmode="numeric" maxlength="6" autocomplete="off">
+        <div class="err" id="cpErr"></div>
+        <button class="btn primary" id="btnChangePass">비밀번호 변경</button>
+      </div>
+      <div class="card">
+        <h2>화면</h2>
+        <div class="chips" id="sTheme">
+          <span class="chip" data-v="auto">시스템</span>
+          <span class="chip" data-v="light">밝게</span>
+          <span class="chip" data-v="dark">어둡게</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row"><h2 class="grow" style="margin:0">휴지통</h2><span class="sub" id="trashCount"></span></div>
+        <p class="sub">삭제한 기록은 여기서 복구하거나 영구 삭제할 수 있어요.</p>
+        <div id="trashBox"></div>
+      </div>
+      <div class="card">
+        <h2>백업</h2>
+        <button class="btn" id="btnBackup">📥 전체 기록 엑셀 백업</button>
+        <p class="sub">엑셀 파일은 암호화되지 않은 평문이에요. 보관에 주의해주세요.</p>
+      </div>
+      <div class="card">
+        <h2>활동 로그 (최근 50건)</h2>
+        <p class="sub" style="margin-top:0">로그에는 내용 없이 작업 종류와 시간만 남아요.</p>
+        <div id="logBox"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="loading" class="hidden"><div class="box" id="loadingMsg">처리 중…</div></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= 설정 ================= */
+const SUPABASE_URL = 'https://flevmhcogrwagyoxcacs.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZsZXZtaGNvZ3J3YWd5b3hjYWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNDk5ODAsImV4cCI6MjA4NzkyNTk4MH0.eWvh1kjdnG-juv77MMbnmnRSWa22eFP0sZn9r4wHsYg';
+const API_URL = SUPABASE_URL + '/functions/v1/upmoo-api';
+const PIN_LEN = 6;
+
+/* ================= 상태 (전부 메모리에만) ================= */
+let token = null;         // 서버 세션 토큰
+let dataKey = null;       // 서버가 PIN 확인 후 내려주는 키 조각
+let cryptoKey = null;     // AES-GCM 키
+let entries = [];         // 복호화된 기록
+let reports = [];         // 저장한 분석 보고서
+let editingId = null;
+let calCursor = null;
+let calSelected = null;
+let idleTimer = null;
+let lastActive = Date.now();
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem('upmoo-'+k); return v===null?d:v; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('upmoo-'+k, v); }catch(e){} }
+};
+
+/* ================= 유틸 ================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today = () => ymd(new Date());
+const parseYmd = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const WD = ['일','월','화','수','목','금','토'];
+const fmtDate = s => { const d = parseYmd(s); return `${s} (${WD[d.getDay()]})`; };
+const fmtDT = iso => { const d = new Date(iso); return `${ymd(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const fmtTime = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), 2400); }
+function loading(on, msg){ $('loadingMsg').textContent = msg||'처리 중…'; $('loading').classList.toggle('hidden', !on); }
+function show(scr){ ['scrUnlock','scrMain'].forEach(s=>$(s).classList.toggle('hidden', s!==scr)); }
+function errMsg(e){ return (e && (e.message||e.error)) || String(e); }
+const isPin = v => new RegExp('^\\d{'+PIN_LEN+'}$').test(v);
+
+/* ================= 서버 API ================= */
+class ApiError extends Error { constructor(status, body){ super(body && body.error || ('HTTP '+status)); this.status=status; this.body=body||{}; } }
+async function api(action, payload={}, opts={}){
+  let res;
+  try{
+    res = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY},
+      body: JSON.stringify({action, token, ...payload})
+    });
+  }catch(e){ throw new ApiError(0, {error:'network'}); }
+  let body = null; try{ body = await res.json(); }catch(e){}
+  if(!res.ok){
+    const err = new ApiError(res.status, body);
+    if(!opts.noAutoLock && res.status===401 && err.body.error==='session'){ lockNow(); toast('보안을 위해 다시 잠겼어요'); }
+    throw err;
+  }
+  return body;
+}
+function apiErrText(e){
+  const c = e && e.body && e.body.error;
+  return ({
+    network:'인터넷 연결을 확인해주세요.',
+    server_not_configured:'서버 설정(UPMOO_PEPPER)이 아직 안 됐어요.',
+    session:'세션이 만료됐어요.',
+    server:'서버 오류가 났어요. 잠시 후 다시 시도해주세요.',
+    bad_input:'입력값이 올바르지 않아요.',
+  })[c] || errMsg(e);
+}
+
+/* ================= 암호화 (AES-GCM 256 + PBKDF2-SHA256) ================= */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const b64 = buf => { const b = new Uint8Array(buf); let s=''; for(let i=0;i<b.length;i+=0x8000) s+=String.fromCharCode.apply(null, b.subarray(i,i+0x8000)); return btoa(s); };
+const unb64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+// 키 = PIN + 서버 키조각(서버가 PIN 확인 후에만 줌) → DB만 털려도 복호화 불가
+async function deriveKey(pin, dk, saltB64, iter){
+  const base = await crypto.subtle.importKey('raw', enc.encode(pin+':'+dk), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt:unb64(saltB64), iterations:iter, hash:'SHA-256'},
+    base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+async function encryptWith(key, obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(JSON.stringify(obj)));
+  return {cipher:b64(ct), iv:b64(iv)};
+}
+async function decryptWith(key, cipher, iv){
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(iv)}, key, unb64(cipher));
+  return JSON.parse(dec.decode(pt));
+}
+function clientLog(a){ api('log', {log_action:a}).catch(()=>{}); }
+
+/* ================= 잠금 화면 (PIN) ================= */
+let pinBuf = '', pinStage = 'enter', pinFirst = '', pinBusy = false, lockTimer = null, lockedUntil = null;
+
+async function boot(){
+  if(!window.crypto || !crypto.subtle){
+    document.body.innerHTML = '<div class="center"><div class="card authbox">이 브라우저는 암호화 기능을 지원하지 않아요. https 주소로 접속하거나 최신 브라우저를 사용해주세요.</div></div>';
+    return;
+  }
+  applyTheme(LS.get('theme','auto'));
+  await toUnlock();
+}
+
+async function toUnlock(){
+  pinBuf=''; pinFirst=''; renderPinDots();
+  $('unlockErr').textContent = '';
+  show('scrUnlock');
+  setPadBusy(true);
+  loading(true, '확인 중…');
+  try{
+    const st = await api('status', {}, {noAutoLock:true});
+    pinStage = st.setup ? 'enter' : 'setup1';
+    $('setupBox').classList.toggle('hidden', st.setup);
+    setPinText();
+    setLocked(st.locked_until);
+  }catch(e){
+    pinStage = 'enter'; setPinText();
+    $('unlockErr').textContent = apiErrText(e);
+    setPadBusy(false);
+    // 연결 실패 시 '다시 시도' 가능하도록
+    $('unlockDesc').innerHTML = '서버에 연결하지 못했어요 · <a href="#" id="retryLink">다시 시도</a>';
+    $('retryLink').onclick = ev => { ev.preventDefault(); toUnlock(); };
+  }
+  loading(false);
+}
+function setPinText(){
+  $('unlockTitle').textContent = pinStage==='enter' ? '업무일지' : '비밀번호 만들기';
+  $('unlockDesc').textContent = pinStage==='enter' ? `비밀번호 ${PIN_LEN}자리를 입력해주세요`
+    : pinStage==='setup1' ? `사용할 비밀번호 ${PIN_LEN}자리를 입력해주세요` : '확인을 위해 한 번 더 입력해주세요';
+}
+function setPadBusy(b){ pinBusy=b; $('pinPad').classList.toggle('busy', b); }
+function setLocked(until){
+  clearInterval(lockTimer);
+  lockedUntil = until && new Date(until) > new Date() ? until : null;
+  if(!lockedUntil){ setPadBusy(false); return; }
+  setPadBusy(true);
+  const tick = ()=>{
+    const left = new Date(lockedUntil) - new Date();
+    if(left <= 0){ clearInterval(lockTimer); lockedUntil=null; $('unlockErr').textContent=''; setPadBusy(false); return; }
+    const m = Math.floor(left/60000), s = Math.floor(left%60000/1000);
+    $('unlockErr').textContent = `🔒 5번 틀려서 잠겼어요. ${fmtTime(lockedUntil)}에 풀려요 (${m}분 ${pad(s)}초 남음)`;
+  };
+  tick(); lockTimer = setInterval(tick, 1000);
+}
+function renderPinDots(){
+  [...$('pinDots').children].forEach((d,i)=>d.classList.toggle('on', i<pinBuf.length));
+}
+function pinError(msg){
+  $('unlockErr').textContent = msg;
+  const d=$('pinDots'); d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake');
+  pinBuf=''; renderPinDots();
+}
+function pinInput(k){
+  if(pinBusy || $('scrUnlock').classList.contains('hidden')) return;
+  if(k==='back'){ pinBuf = pinBuf.slice(0,-1); }
+  else if(k==='clear'){ pinBuf = ''; }
+  else if(/^\d$/.test(k) && pinBuf.length<PIN_LEN){ pinBuf += k; $('unlockErr').textContent=''; }
+  renderPinDots();
+  if(pinBuf.length===PIN_LEN){ const v=pinBuf; setPadBusy(true); setTimeout(()=>doUnlock(v), 120); }
+}
+
+async function doUnlock(pin){
+  try{
+    if(!isPin(pin)) return;
+    if(pinStage==='setup1'){
+      pinFirst = pin; pinStage='setup2'; pinBuf=''; setPinText(); renderPinDots(); return;
+    }
+    if(pinStage==='setup2' && pin!==pinFirst){
+      pinStage='setup1'; pinFirst=''; setPinText(); pinError('두 번 입력한 비밀번호가 달라요. 처음부터 다시 입력해주세요.'); return;
+    }
+    loading(true, pinStage==='setup2' ? '비밀번호 설정 중…' : '잠금 해제 중…');
+    let r;
+    try{
+      r = await api(pinStage==='setup2' ? 'setup' : 'unlock', {pin}, {noAutoLock:true});
+    }catch(e){
+      loading(false);
+      const c = e.body && e.body.error;
+      if(c==='wrong_pin'){ pinError(`비밀번호가 맞지 않아요. (${e.body.attempt}/${e.body.max}회)`); return; }
+      if(c==='locked'){ pinBuf=''; renderPinDots(); setLocked(e.body.locked_until); return; }
+      if(c==='already_setup'){ pinStage='enter'; pinFirst=''; $('setupBox').classList.add('hidden'); setPinText(); pinError('이미 비밀번호가 설정돼 있어요. 비밀번호를 입력해주세요.'); return; }
+      if(c==='not_setup'){ pinStage='setup1'; $('setupBox').classList.remove('hidden'); setPinText(); pinError('비밀번호를 먼저 만들어주세요.'); return; }
+      if(pinStage==='setup2'){ pinStage='setup1'; pinFirst=''; setPinText(); }
+      pinError(apiErrText(e)); return;
+    }
+    token = r.token; dataKey = r.data_key;
+    cryptoKey = await deriveKey(pin, r.data_key, r.kdf_salt, r.kdf_iter);
+    pinBuf=''; pinFirst=''; renderPinDots();
+    loading(false);
+    await loadEntries();
+    enterMain();
+  } finally {
+    loading(false);
+    if(!lockedUntil) setPadBusy(false);
+  }
+}
+
+function hardLock(){
+  if(token){ const t=token; fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY},body:JSON.stringify({action:'lock',token:t}),keepalive:true}).catch(()=>{}); }
+  token = null; dataKey = null; cryptoKey = null; entries = []; reports = []; editingId = null;
+  clearTimeout(idleTimer);
+  ['listBox','reportBox','sameDayList','trashBox','logBox'].forEach(id=>{ const el=$(id); if(el) el.innerHTML=''; });
+  ['fTitle','fContent','cpOld','cpNew1','cpNew2'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
+}
+function lockNow(){ hardLock(); toUnlock(); }
+
+/* 자동 잠금 */
+function lockMinutes(){ return Math.min(60, Number(LS.get('lockmin','15')) || 15); }
+function bumpIdle(){
+  if(!cryptoKey) return;
+  lastActive = Date.now();
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(()=>{ if(cryptoKey){ lockNow(); toast('자동 잠금됐어요'); } }, lockMinutes()*60000);
+}
+['click','keydown','touchstart','scroll'].forEach(ev=>document.addEventListener(ev, bumpIdle, {passive:true}));
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && cryptoKey && Date.now()-lastActive > lockMinutes()*60000){ lockNow(); toast('자동 잠금됐어요'); }
+});
+
+/* ================= 데이터 ================= */
+async function decryptRow(r){
+  const p = await decryptWith(cryptoKey, r.cipher, r.iv);
+  return { id:r.id, date:r.entry_date, created_at:r.created_at, updated_at:r.updated_at, deleted_at:r.deleted_at,
+    kind:p.kind||'note', title:p.title||'', content:p.content||'', from:p.from||'', to:p.to||'' };
+}
+async function loadEntries(){
+  loading(true, '기록 불러오는 중…');
+  try{
+    const { rows } = await api('list');
+    const out = []; let bad = 0;
+    for(const r of rows){ try{ out.push(await decryptRow(r)); }catch(e){ bad++; } }
+    entries = sortEntries(out.filter(x=>x.kind!=='report'));
+    reports = out.filter(x=>x.kind==='report' && !x.deleted_at);
+    if(bad) toast(`복호화 실패 ${bad}건이 있어요`);
+  }catch(e){ if(cryptoKey) toast('불러오기 실패: '+apiErrText(e)); }
+  loading(false);
+}
+const live = () => entries.filter(e=>!e.deleted_at);
+const sortEntries = arr => arr.sort((a,b)=> a.date===b.date ? (b.created_at>a.created_at?1:-1) : (b.date>a.date?1:-1));
+
+/* ================= 메인 ================= */
+function enterMain(){
+  show('scrMain');
+  $('sLock').value = String(lockMinutes());
+  calCursor = new Date(); calCursor.setDate(1);
+  resetForm();
+  setQuick('month');
+  switchTab('write');
+  bumpIdle();
+}
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
+  ['write','read','list','report','settings'].forEach(x=>$('tab-'+x).classList.toggle('hidden', x!==t));
+  if(t==='write') renderSameDay();
+  if(t==='read') openRead();
+  if(t==='list'){ renderCal(); renderList(); }
+  if(t==='report') renderReport();
+  if(t==='settings'){ renderTrash(); renderLogs(); renderThemeChips(); }
+  window.scrollTo(0,0);
+}
+
+/* ================= 쓰기 ================= */
+$('fDate').addEventListener('change', ()=>renderSameDay());
+
+function resetForm(){
+  editingId = null;
+  $('fDate').value = today();
+  $('fTitle').value=''; $('fContent').value='';
+  $('formTitle').textContent = '오늘의 기록';
+  $('btnSave').textContent = '저장';
+  $('btnCancelEdit').classList.add('hidden');
+}
+function startEdit(id){
+  const e = entries.find(x=>x.id===id); if(!e) return;
+  editingId = id;
+  $('fDate').value = e.date;
+  $('fTitle').value = e.title; $('fContent').value = e.content;
+  $('formTitle').textContent = '기록 수정';
+  $('btnSave').textContent = '수정 저장';
+  $('btnCancelEdit').classList.remove('hidden');
+  switchTab('write');
+}
+$('btnCancelEdit').addEventListener('click', ()=>{ resetForm(); renderSameDay(); });
+
+async function saveEntry(){
+  if(!cryptoKey){ lockNow(); return; }
+  const date = $('fDate').value;
+  const payload = { v:2, title:$('fTitle').value.trim(), content:$('fContent').value.trim() };
+  if(!date){ toast('날짜를 선택해주세요'); return; }
+  if(!payload.title && !payload.content){ toast('제목이나 내용을 입력해주세요'); return; }
+  $('btnSave').disabled = true;
+  try{
+    const c = await encryptWith(cryptoKey, payload);
+    if(editingId){
+      const { row } = await api('update', {id:editingId, entry_date:date, cipher:c.cipher, iv:c.iv});
+      const i = entries.findIndex(x=>x.id===editingId);
+      entries[i] = {...entries[i], ...payload, date:row.entry_date, updated_at:row.updated_at};
+      toast('수정했어요');
+    } else {
+      const { row } = await api('create', {entry_date:date, cipher:c.cipher, iv:c.iv});
+      entries.push({id:row.id, date:row.entry_date, created_at:row.created_at, updated_at:row.updated_at, deleted_at:null, ...payload});
+      toast('저장했어요 ✍️');
+    }
+    sortEntries(entries);
+    resetForm(); $('fDate').value = date;
+    renderSameDay();
+  }catch(e){ if(cryptoKey) toast('저장 실패: '+apiErrText(e)); }
+  $('btnSave').disabled = false;
+}
+$('btnSave').addEventListener('click', saveEntry);
+
+function entryHTML(e, opts={}){
+  return `<div class="entry">
+    ${opts.showDate?`<div class="meta"><b>${fmtDate(e.date)}</b></div>`:''}
+    ${e.title?`<div class="title">${esc(e.title)}</div>`:''}
+    ${e.content?`<div class="body">${esc(e.content)}</div>`:''}
+    <div class="ops">
+      <span class="sub" style="margin-right:auto;font-size:12px">작성 ${fmtDT(e.created_at)}${e.updated_at && e.updated_at.slice(0,16)!==e.created_at.slice(0,16)?` · 수정 ${fmtDT(e.updated_at)}`:''}</span>
+      ${opts.trash
+        ? `<button class="btn sm" data-op="restore" data-id="${e.id}">복구</button><button class="btn sm danger" data-op="purge" data-id="${e.id}">영구삭제</button>`
+        : `<button class="btn sm" data-op="edit" data-id="${e.id}">수정</button><button class="btn sm danger" data-op="del" data-id="${e.id}">삭제</button>`}
+    </div>
+  </div>`;
+}
+document.addEventListener('click', async ev=>{
+  const b = ev.target.closest('button[data-op]'); if(!b) return;
+  const id = b.dataset.id, op = b.dataset.op;
+  if(op==='edit') startEdit(id);
+  if(op==='del') await softDelete(id);
+  if(op==='restore') await restoreEntry(id);
+  if(op==='purge') await purgeEntry(id);
+});
+
+async function softDelete(id){
+  if(!confirm('이 기록을 삭제할까요? (휴지통에서 복구 가능)')) return;
+  try{
+    const { row } = await api('delete', {id});
+    const e = entries.find(x=>x.id===id); e.deleted_at = row.deleted_at;
+    if(editingId===id) resetForm();
+    toast('휴지통으로 옮겼어요'); refreshCurrent();
+  }catch(e){ if(cryptoKey) toast('삭제 실패: '+apiErrText(e)); }
+}
+async function restoreEntry(id){
+  try{
+    await api('restore', {id});
+    const e = entries.find(x=>x.id===id); e.deleted_at = null;
+    toast('복구했어요'); renderTrash();
+  }catch(e){ if(cryptoKey) toast('복구 실패: '+apiErrText(e)); }
+}
+async function purgeEntry(id){
+  if(!confirm('영구 삭제하면 되돌릴 수 없어요. 삭제할까요?')) return;
+  try{
+    await api('purge', {id});
+    entries = entries.filter(x=>x.id!==id);
+    toast('영구 삭제했어요'); renderTrash();
+  }catch(e){ if(cryptoKey) toast('삭제 실패: '+apiErrText(e)); }
+}
+function refreshCurrent(){ const t = document.querySelector('.tab.on')?.dataset.tab; if(t) switchTab(t); }
+
+function renderSameDay(){
+  const d = $('fDate').value || today();
+  $('sameDayTitle').textContent = `${fmtDate(d)} 기록`;
+  const list = live().filter(e=>e.date===d);
+  $('sameDayList').innerHTML = list.length ? list.map(e=>entryHTML(e)).join('') : '<div class="empty">아직 이 날 기록이 없어요</div>';
+}
+
+/* ================= 읽기 (날짜별 슬라이드) ================= */
+let readDates = [], readIdx = -1, readBusy = false;
+function buildReadDates(){ readDates = [...new Set(live().map(e=>e.date))].sort(); }
+function openRead(keepDate){
+  const cur = keepDate || readDates[readIdx];
+  buildReadDates();
+  if(!readDates.length){ readIdx = -1; }
+  else if(cur && readDates.includes(cur)) readIdx = readDates.indexOf(cur);
+  else readIdx = readDates.length - 1;          // 처음엔 가장 최근 날짜
+  renderRead();
+}
+function renderRead(){
+  const page = $('readPage');
+  if(readIdx < 0){
+    $('readDate').textContent = '기록 없음';
+    $('readCount').textContent = '';
+    page.innerHTML = '<div class="empty">아직 쓴 기록이 없어요. ✍️ 쓰기에서 첫 기록을 남겨보세요.</div>';
+    $('readDots').innerHTML = ''; $('readPrev').disabled = $('readNext').disabled = true;
+    return;
+  }
+  const date = readDates[readIdx];
+  const list = live().filter(e=>e.date===date).sort((a,b)=>a.created_at>b.created_at?1:-1);
+  $('readDate').textContent = fmtDate(date);
+  $('readCount').textContent = `${readIdx+1} / ${readDates.length}일 · 기록 ${list.length}건`;
+  $('readJump').value = date;
+  $('readPrev').disabled = readIdx <= 0;
+  $('readNext').disabled = readIdx >= readDates.length - 1;
+  page.innerHTML = list.map(e=>`<div class="read-entry">
+      ${e.title?`<div class="rt">${esc(e.title)}</div>`:''}
+      ${e.content?`<div class="rb">${esc(e.content)}</div>`:''}
+      <div class="rm"><span>${fmtTime(e.created_at)} 작성</span><span style="flex:1"></span>
+        <button class="btn sm" data-op="edit" data-id="${e.id}">수정</button></div>
+    </div>`).join('');
+  // 점 표시: 최대 15개까지만 (현재 위치 중심)
+  const N = readDates.length, W = 15;
+  let from = Math.max(0, Math.min(readIdx - Math.floor(W/2), N - W)), to = Math.min(N, from + W);
+  let dots = ''; for(let i=from;i<to;i++) dots += `<span class="${i===readIdx?'on':''}"></span>`;
+  $('readDots').innerHTML = dots;
+}
+function readGo(step){
+  const ni = readIdx + step;
+  if(readBusy || readIdx < 0 || ni < 0 || ni >= readDates.length){ snapBack(); return; }
+  readBusy = true;
+  const page = $('readPage');
+  page.classList.remove('dragging'); page.style.transform = ''; page.style.opacity = '';
+  page.classList.add(step > 0 ? 'out-left' : 'out-right');
+  setTimeout(()=>{
+    readIdx = ni; renderRead();
+    page.classList.add('dragging');
+    page.classList.remove('out-left','out-right');
+    page.classList.add(step > 0 ? 'out-right' : 'out-left');   // 반대편에서 들어오기
+    void page.offsetWidth;
+    page.classList.remove('dragging','out-left','out-right');
+    setTimeout(()=>{ readBusy = false; }, 260);
+  }, 200);
+  window.scrollTo(0,0);
+}
+function snapBack(){ const p=$('readPage'); p.classList.remove('dragging'); p.style.transform=''; p.style.opacity=''; }
+$('readPrev').addEventListener('click', ()=>readGo(-1));
+$('readNext').addEventListener('click', ()=>readGo(1));
+$('readLatest').addEventListener('click', ()=>{ if(readDates.length){ const s=(readDates.length-1)-readIdx; if(s) readGo(s); } });
+$('readJump').addEventListener('change', ()=>{
+  const v = $('readJump').value; if(!v || !readDates.length) return;
+  // 그 날 기록이 없으면 가장 가까운 날짜로
+  let best = 0, bd = Infinity;
+  readDates.forEach((d,i)=>{ const diff = Math.abs(parseYmd(d)-parseYmd(v)); if(diff < bd){ bd = diff; best = i; } });
+  if(readDates[best] !== v) toast(`그 날 기록이 없어서 ${readDates[best]}로 이동했어요`);
+  const step = best - readIdx; if(step) readGo(step); else renderRead();
+});
+// 스와이프 (터치 + 마우스 드래그)
+(() => {
+  const stage = $('readStage'); let sx=0, sy=0, dx=0, active=false, horiz=null;
+  const start = (x,y,target)=>{ if(target.closest('button')) return; sx=x; sy=y; dx=0; active=true; horiz=null; };
+  const move = (x,y,ev)=>{
+    if(!active || readBusy) return;
+    const mx = x-sx, my = y-sy;
+    if(horiz===null){ if(Math.abs(mx)<8 && Math.abs(my)<8) return; horiz = Math.abs(mx) > Math.abs(my); }
+    if(!horiz) return;
+    if(ev && ev.cancelable) ev.preventDefault();
+    dx = mx;
+    const edge = (dx>0 && readIdx<=0) || (dx<0 && readIdx>=readDates.length-1);
+    const p = $('readPage'); p.classList.add('dragging');
+    p.style.transform = `translateX(${edge? dx*0.25 : dx}px)`;
+    p.style.opacity = String(Math.max(0.4, 1 - Math.abs(dx)/600));
+  };
+  const end = ()=>{
+    if(!active) return; active=false;
+    if(horiz && Math.abs(dx) > 60) readGo(dx < 0 ? 1 : -1); else snapBack();
+  };
+  stage.addEventListener('touchstart', e=>start(e.touches[0].clientX, e.touches[0].clientY, e.target), {passive:true});
+  stage.addEventListener('touchmove', e=>move(e.touches[0].clientX, e.touches[0].clientY, e), {passive:false});
+  stage.addEventListener('touchend', end); stage.addEventListener('touchcancel', end);
+  stage.addEventListener('mousedown', e=>{ if(e.button===0) start(e.clientX, e.clientY, e.target); });
+  window.addEventListener('mousemove', e=>{ if(active) move(e.clientX, e.clientY, null); });
+  window.addEventListener('mouseup', end);
+})();
+// 키보드 ← →
+document.addEventListener('keydown', e=>{
+  if($('tab-read').classList.contains('hidden') || $('scrMain').classList.contains('hidden')) return;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||'')) return;
+  if(e.key==='ArrowLeft') readGo(-1);
+  if(e.key==='ArrowRight') readGo(1);
+});
+
+/* ================= 기록 (캘린더 + 목록) ================= */
+function renderCal(){
+  const y = calCursor.getFullYear(), m = calCursor.getMonth();
+  $('calTitle').textContent = `${y}년 ${m+1}월`;
+  const counts = {}; live().forEach(e=>{ counts[e.date]=(counts[e.date]||0)+1; });
+  const first = new Date(y, m, 1); const start = new Date(y, m, 1 - first.getDay());
+  let h = WD.map((w,i)=>`<div class="h" style="${i===0?'color:var(--bad)':''}">${w}</div>`).join('');
+  const td = today();
+  for(let i=0;i<42;i++){
+    const d = new Date(start); d.setDate(start.getDate()+i);
+    const k = ymd(d);
+    const cls = ['d', d.getMonth()!==m?'out':'', k===td?'today':'', k===calSelected?'sel':''].join(' ');
+    h += `<div class="${cls}" data-d="${k}"><span class="${d.getDay()===0?'sun':''}">${d.getDate()}</span>${counts[k]?`<span class="cnt">${counts[k]}</span>`:''}</div>`;
+  }
+  $('cal').innerHTML = h;
+}
+$('cal').addEventListener('click', e=>{
+  const c = e.target.closest('.d'); if(!c) return;
+  const k = c.dataset.d;
+  if(calSelected===k){ calSelected=null; $('lFrom').value=''; $('lTo').value=''; }
+  else { calSelected=k; $('lFrom').value=k; $('lTo').value=k; }
+  renderCal(); renderList();
+});
+$('calPrev').addEventListener('click', ()=>{ calCursor.setMonth(calCursor.getMonth()-1); renderCal(); });
+$('calNext').addEventListener('click', ()=>{ calCursor.setMonth(calCursor.getMonth()+1); renderCal(); });
+$('calToday').addEventListener('click', ()=>{ calCursor=new Date(); calCursor.setDate(1); renderCal(); });
+
+['lFrom','lTo'].forEach(id=>$(id).addEventListener('change', ()=>{ calSelected=null; renderCal(); renderList(); }));
+$('lKw').addEventListener('input', ()=>renderList());
+$('lReset').addEventListener('click', ()=>{ ['lFrom','lTo','lKw'].forEach(id=>$(id).value=''); calSelected=null; renderCal(); renderList(); });
+
+function filterList(){
+  const f=$('lFrom').value, t=$('lTo').value, kw=$('lKw').value.trim().toLowerCase();
+  return live().filter(e=>{
+    if(f && e.date<f) return false;
+    if(t && e.date>t) return false;
+    if(kw && !(`${e.title}\n${e.content}`.toLowerCase().includes(kw))) return false;
+    return true;
+  });
+}
+function renderList(){
+  const list = filterList();
+  $('lCount').textContent = `${list.length}건`;
+  if(!list.length){ $('listBox').innerHTML = '<div class="card empty">조건에 맞는 기록이 없어요</div>'; return; }
+  let h='', cur=null;
+  list.forEach(e=>{
+    if(e.date!==cur){ if(cur!==null) h+='</div>'; cur=e.date; h+=`<div class="dategroup">${fmtDate(e.date)}</div><div>`; }
+    h += entryHTML(e);
+  });
+  h += '</div>';
+  $('listBox').innerHTML = h;
+}
+$('lExcel').addEventListener('click', ()=>exportExcel(filterList(), `업무일지_기록_${today()}.xlsx`));
+
+/* ================= 분석 → Word 내려받기 (몇 달 치를 한 편의 글로) ================= */
+const fmtMonth = m => `${Number(m.slice(0,4))}년 ${Number(m.slice(5,7))}월`;
+const fmtDay = d => { const x=parseYmd(d); return `${x.getMonth()+1}월 ${x.getDate()}일 (${WD[x.getDay()]})`; };
+
+function setQuick(q){
+  const now = new Date(); let f, t = new Date(now);
+  if(q==='month'){ f=new Date(now.getFullYear(), now.getMonth(), 1); }
+  else if(q==='lastmonth'){ f=new Date(now.getFullYear(), now.getMonth()-1, 1); t=new Date(now.getFullYear(), now.getMonth(), 0); }
+  else if(q==='3m'){ f=new Date(now.getFullYear(), now.getMonth()-2, 1); }
+  else if(q==='6m'){ f=new Date(now.getFullYear(), now.getMonth()-5, 1); }
+  else if(q==='year'){ f=new Date(now.getFullYear(),0,1); }
+  else if(q==='all'){ const l=live(); f = l.length ? parseYmd(l.reduce((m,e)=>e.date<m?e.date:m, l[0].date)) : new Date(now); }
+  $('rFrom').value = ymd(f); $('rTo').value = ymd(t);
+  document.querySelectorAll('#rQuick .chip').forEach(c=>c.classList.toggle('on', c.dataset.q===q));
+}
+$('rQuick').addEventListener('click', e=>{ const c=e.target.closest('.chip'); if(!c) return; setQuick(c.dataset.q); renderReport(); });
+['rFrom','rTo'].forEach(id=>$(id).addEventListener('change', ()=>{ document.querySelectorAll('#rQuick .chip').forEach(c=>c.classList.remove('on')); renderReport(); }));
+
+function reportData(){
+  let f=$('rFrom').value, t=$('rTo').value;
+  if(f && t && f>t){ [f,t]=[t,f]; $('rFrom').value=f; $('rTo').value=t; }
+  const list = live().filter(e=>(!f||e.date>=f)&&(!t||e.date<=t)).sort((a,b)=>a.date===b.date?(a.created_at>b.created_at?1:-1):(a.date>b.date?1:-1));
+  return {f, t, list};
+}
+function periodLabel(f, t){
+  if(f.slice(0,7)===t.slice(0,7)) return fmtMonth(f.slice(0,7));
+  if(f.slice(8)==='01') return `${fmtMonth(f.slice(0,7))} ~ ${fmtMonth(t.slice(0,7))}`;
+  return `${f} ~ ${t}`;
+}
+// 월 → 날짜 → 기록 순으로 묶기
+function groupByMonthDay(list){
+  const months = [];
+  list.forEach(e=>{
+    const m = e.date.slice(0,7);
+    let M = months[months.length-1];
+    if(!M || M.m!==m){ M = {m, days:[]}; months.push(M); }
+    let D = M.days[M.days.length-1];
+    if(!D || D.d!==e.date){ D = {d:e.date, items:[]}; M.days.push(D); }
+    D.items.push(e);
+  });
+  return months;
+}
+
+function renderReport(){
+  const {f, t, list} = reportData();
+  const days = new Set(list.map(e=>e.date)).size;
+  $('rInfo').textContent = list.length ? `${periodLabel(f,t)} · ${days}일 · 기록 ${list.length}건` : '이 기간에는 기록이 없어요';
+  $('rWord').disabled = !list.length;
+  if(!list.length){ $('reportBox').innerHTML = ''; return; }
+  const title = $('rDocTitle').value.trim() || '업무일지';
+  let h = `<div class="card doc-preview">
+    <div class="dp-title">${esc(title)}</div>
+    <div class="dp-sub">${esc(periodLabel(f,t))} · 기록 ${list.length}건</div>`;
+  groupByMonthDay(list).forEach(M=>{
+    h += `<div class="dp-month">${fmtMonth(M.m)}</div>`;
+    M.days.forEach(D=>{
+      h += `<div class="dp-day">${fmtDay(D.d)}</div>`;
+      D.items.forEach(e=>{
+        if(e.title) h += `<div class="dp-etitle">${esc(e.title)}</div>`;
+        if(e.content) h += `<div class="dp-body">${esc(e.content)}</div>`;
+      });
+    });
+  });
+  h += `</div>`;
+  $('reportBox').innerHTML = h;
+}
+$('rDocTitle').addEventListener('input', ()=>renderReport());
+
+// Word(.docx) 문서 만들기 — D 는 docx 라이브러리
+function buildDocx(D, title, f, t, list){
+  const FONT = {ascii:'Malgun Gothic', eastAsia:'맑은 고딕', hAnsi:'Malgun Gothic', cs:'Malgun Gothic'};
+  const P = (opts) => new D.Paragraph(opts);
+  const R = (text, o={}) => new D.TextRun({text, font:FONT, ...o});
+  const kids = [
+    P({alignment:D.AlignmentType.CENTER, spacing:{after:80}, children:[R(title, {bold:true, size:40})]}),
+    P({alignment:D.AlignmentType.CENTER, spacing:{after:480}, children:[R(`${periodLabel(f,t)} · 기록 ${list.length}건`, {size:20, color:'777777'})]}),
+  ];
+  groupByMonthDay(list).forEach((M, mi)=>{
+    kids.push(P({heading:D.HeadingLevel.HEADING_1, spacing:{before: mi?480:0, after:200},
+      border:{bottom:{style:D.BorderStyle.SINGLE, size:6, color:'2F5D50', space:4}},
+      children:[R(fmtMonth(M.m), {bold:true, size:30, color:'2F5D50'})]}));
+    M.days.forEach(Dy=>{
+      kids.push(P({heading:D.HeadingLevel.HEADING_2, spacing:{before:280, after:100}, keepNext:true,
+        children:[R(fmtDay(Dy.d), {bold:true, size:24, color:'444444'})]}));
+      Dy.items.forEach((e, ei)=>{
+        if(e.title) kids.push(P({spacing:{before: ei?200:40, after:80}, keepNext:true, children:[R(e.title, {bold:true, size:23})]}));
+        (e.content||'').split('\n').forEach(line=>{
+          kids.push(P({spacing:{after:60, line:360}, children: line.trim() ? [R(line, {size:21})] : []}));
+        });
+      });
+    });
+  });
+  return new D.Document({
+    creator:'업무일지', title, description:`${f} ~ ${t}`,
+    styles:{ default:{ document:{ run:{ font:FONT, size:21 } } } },
+    sections:[{
+      properties:{ page:{ size:{width:11906, height:16838}, margin:{top:1440, bottom:1440, left:1440, right:1440} } },
+      footers:{ default: new D.Footer({ children:[ P({alignment:D.AlignmentType.CENTER,
+        children:[ new D.TextRun({children:[D.PageNumber.CURRENT, ' / ', D.PageNumber.TOTAL_PAGES], font:FONT, size:18, color:'999999'}) ]}) ] }) },
+      children:kids,
+    }],
+  });
+}
+
+async function downloadWord(){
+  const {f, t, list} = reportData();
+  if(!list.length){ toast('이 기간에는 기록이 없어요'); return; }
+  if(!window.docx){ toast('Word 라이브러리를 불러오지 못했어요. 새로고침 후 다시 해주세요.'); return; }
+  const title = $('rDocTitle').value.trim() || '업무일지';
+  const btn = $('rWord'); btn.disabled = true;
+  try{
+    const blob = await docx.Packer.toBlob(buildDocx(docx, title, f, t, list));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${title.replace(/[\\/:*?"<>|]/g,'_')}_${f}_${t}.docx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+    clientLog('export_word');
+    toast('Word 파일을 내려받았어요 📄');
+  }catch(e){ toast('Word 만들기 실패: '+errMsg(e)); }
+  btn.disabled = false;
+}
+$('rWord').addEventListener('click', downloadWord);
+
+/* ================= 엑셀 ================= */
+function exportExcel(list, filename){
+  if(!list.length){ toast('내보낼 기록이 없어요'); return; }
+  if(!window.XLSX){ toast('엑셀 라이브러리를 불러오지 못했어요'); return; }
+  const rows = [...list].sort((a,b)=>a.date===b.date?(a.created_at>b.created_at?1:-1):(a.date>b.date?1:-1)).map(e=>({
+    '날짜':e.date, '요일':WD[parseYmd(e.date).getDay()], '제목':e.title, '내용':e.content, '작성일시':fmtDT(e.created_at), '수정일시':fmtDT(e.updated_at)
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:11},{wch:5},{wch:30},{wch:80},{wch:17},{wch:17}];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '업무일지');
+  XLSX.writeFile(wb, filename);
+  clientLog('export_excel');
+}
+$('btnBackup').addEventListener('click', ()=>exportExcel(live(), `업무일지_전체백업_${today()}.xlsx`));
+
+/* ================= 설정 ================= */
+$('sLock').addEventListener('change', ()=>{ LS.set('lockmin', $('sLock').value); bumpIdle(); toast(`자동 잠금 ${$('sLock').value}분`); });
+function applyTheme(v){ if(v==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', v); }
+function renderThemeChips(){ const v=LS.get('theme','auto'); document.querySelectorAll('#sTheme .chip').forEach(c=>c.classList.toggle('on', c.dataset.v===v)); }
+$('sTheme').addEventListener('click', e=>{ const c=e.target.closest('.chip'); if(!c) return; LS.set('theme', c.dataset.v); applyTheme(c.dataset.v); renderThemeChips(); });
+
+function renderTrash(){
+  const tr = entries.filter(e=>e.deleted_at).sort((a,b)=>b.deleted_at>a.deleted_at?1:-1);
+  $('trashCount').textContent = `${tr.length}건`;
+  $('trashBox').innerHTML = tr.length ? tr.map(e=>entryHTML(e,{showDate:true, trash:true})).join('') : '<div class="empty">비어 있어요</div>';
+}
+const ACT_NAME = {create:'작성', update:'수정', delete:'삭제(휴지통)', restore:'복구', purge:'영구삭제', export_excel:'엑셀 내보내기', export_word:'Word 내려받기',
+  report_copy:'보고서 복사', report_ai_copy:'AI 정리용 복사', passphrase_setup:'비밀번호 설정', passphrase_change:'비밀번호 변경',
+  unlock:'잠금 해제', unlock_fail:'⚠️ 비밀번호 틀림', locked:'🚨 5회 실패 → 30분 잠금'};
+async function renderLogs(){
+  $('logBox').innerHTML = '<div class="sub">불러오는 중…</div>';
+  try{
+    const { rows } = await api('logs');
+    $('logBox').innerHTML = rows.length ? `<table class="log"><tr><th>일시</th><th>작업</th><th>기록 날짜</th></tr>${rows.map(l=>`<tr><td>${fmtDT(l.created_at)}</td><td>${esc(ACT_NAME[l.action]||l.action)}</td><td>${l.entry_date||''}</td></tr>`).join('')}</table>` : '<div class="empty">로그가 없어요</div>';
+  }catch(e){ $('logBox').innerHTML = `<div class="err">${esc(apiErrText(e))}</div>`; }
+}
+
+async function changePass(){
+  const o=$('cpOld').value, n1=$('cpNew1').value, n2=$('cpNew2').value;
+  $('cpErr').textContent='';
+  if(!isPin(o)){ $('cpErr').textContent=`현재 비밀번호 ${PIN_LEN}자리를 입력해주세요.`; return; }
+  if(!isPin(n1)){ $('cpErr').textContent=`새 비밀번호는 숫자 ${PIN_LEN}자리여야 해요.`; return; }
+  if(n1!==n2){ $('cpErr').textContent='새 비밀번호 확인이 일치하지 않아요.'; return; }
+  if(o===n1){ $('cpErr').textContent='현재 비밀번호와 같아요.'; return; }
+  const btn=$('btnChangePass'); btn.disabled=true;
+  try{
+    loading(true, '전체 기록 확인 중…');
+    const { rows } = await api('list');      // 서버 최신 상태 기준 (다른 기기 변경분 포함)
+    const plain = [];
+    for(const r of rows) plain.push({id:r.id, p:await decryptWith(cryptoKey, r.cipher, r.iv)});
+    loading(true, `재암호화 중… (${plain.length}건)`);
+    const kdf_salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+    const iter = 310000;
+    const newKey = await deriveKey(n1, dataKey, kdf_salt, iter);
+    const out = [];
+    for(const x of plain){ const c = await encryptWith(newKey, x.p); out.push({id:x.id, cipher:c.cipher, iv:c.iv}); }
+    loading(true, '저장 중…');
+    const r = await api('rekey', {old_pin:o, new_pin:n1, kdf_salt, entries:out}, {noAutoLock:true});
+    if(r.kdf_iter !== iter) throw new Error('서버 설정이 맞지 않아요');
+    token = r.token; cryptoKey = newKey;
+    ['cpOld','cpNew1','cpNew2'].forEach(id=>$(id).value='');
+    loading(false);
+    await loadEntries();
+    toast('비밀번호를 변경했어요'); renderLogs();
+  }catch(e){
+    loading(false);
+    const c = e.body && e.body.error;
+    if(c==='wrong_pin') $('cpErr').textContent = `현재 비밀번호가 맞지 않아요. (${e.body.attempt}/${e.body.max}회)`;
+    else if(c==='locked'){ lockNow(); toast('5번 틀려서 30분 동안 잠겼어요'); }
+    else if(c==='session'){ lockNow(); toast('보안을 위해 다시 잠겼어요'); }
+    else $('cpErr').textContent = '변경 실패 (기존 비밀번호 그대로 유지돼요): '+(c==='rekey_failed'?'다른 기기에서 기록이 바뀌었어요. 다시 시도해주세요.':apiErrText(e));
+  }
+  btn.disabled=false;
+}
+$('btnChangePass').addEventListener('click', changePass);
+
+/* ================= 이벤트 ================= */
+document.addEventListener('click', e=>{
+  const el = e.target;
+  if(el instanceof HTMLInputElement && el.type==='date' && typeof el.showPicker==='function'){
+    try{ el.showPicker(); }catch(_){}
+  }
+});
+$('pinPad').addEventListener('click', e=>{ const b=e.target.closest('button[data-k]'); if(b) pinInput(b.dataset.k); });
+document.addEventListener('keydown', e=>{
+  if($('scrUnlock').classList.contains('hidden')) return;
+  if(/^\d$/.test(e.key)) pinInput(e.key);
+  else if(e.key==='Backspace') pinInput('back');
+  else if(e.key==='Escape') pinInput('clear');
+});
+$('btnLock').addEventListener('click', lockNow);
+$('btnLock2').addEventListener('click', lockNow);
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click', ()=>switchTab(b.dataset.tab)));
+window.addEventListener('pagehide', ()=>{ if(token) hardLock(); });
+
+boot();
+})();
+</script>
+</body>
+</html>
